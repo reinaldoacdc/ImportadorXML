@@ -1,0 +1,68 @@
+<style>
+  #select_file {
+    text-align: left;
+    width: 95%;
+    font-size: 1em;
+    margin: auto;
+    height: 3em;
+  }
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.js"></script>
+
+<select id="select_file"></select>
+<button id="run_folder">Run</button>
+<p id="id"></p>
+
+<script>
+var alldata = {};
+
+$(function() {
+  const rootFolderId = "root";
+  google.script.run.withSuccessHandler(importData).getFiles(rootFolderId, rootFolderId);
+
+  $('#run_folder').click(function() {
+    var id = $('#select_file').val();
+    google.script.run.withSuccessHandler(output).doSomething(id);
+  });
+
+  $('#select_file').change(function() {
+    var id = $('#select_file').val();
+    var disp = $('#select_file option:selected').text();
+    if (~disp.indexOf("Folder") || ~disp.indexOf("../")) {
+      $('#select_file > option').remove();
+      if (alldata[id]) {
+        var dat = {};
+        dat[id] = alldata[id];
+        importData(dat);
+        return;
+      } else {
+        google.script.run.withSuccessHandler(importData).getFiles(id, rootFolderId);
+        return;
+      }
+      return;
+    }
+    google.script.run.withSuccessHandler(output).doSomething(id);
+  });
+});
+
+function importData(e) {
+  var key = Object.keys(e)[0];
+  if (!alldata[key]) alldata[key] = e[key];
+  if (e[key]["keyparent"]) {
+    $('#select_file').append($('<option>').html("./" + e[key]["keyname"]).val(key));
+    $('#select_file').append($('<option>').html("../").val(e[key]["keyparent"]));
+  } else {
+    $('#select_file').append($('<option>').html("./" + e[key]["keyname"]).val(key));
+  }
+  for (var i=0; i < e[key]["files"].length; i++) {
+    $('#select_file').append($('<option>')
+      .html(e[key]["files"][i].mimeType == "folder" ? "[Folder]" + e[key]["files"][i].name : e[key]["files"][i].name)
+      .val(e[key]["files"][i].id)
+    );
+  }
+}
+
+function output(res){
+  $('#id').text(res);
+}
+</script>
